@@ -1,8 +1,10 @@
 package analysis.value;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.Map.Entry;
 
@@ -25,7 +27,7 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
     protected T left;
     protected T right;
     
-    protected Hashtable<V, Set<T>> varTable;
+    protected Hashtable<V, List<T>> varTable;
 
     //TODO: move logic to TreeValue(Type, Object) make this a wrapper of leafValue=null
     public TreeValue (Type type) {
@@ -92,10 +94,10 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
         }
 
         if (rightTree.varTable != null) {
-            for (Entry<V, Set<T>> entry : rightTree.varTable.entrySet()) {
+            for (Entry<V, List<T>> entry : rightTree.varTable.entrySet()) {
                 V key = entry.getKey();
-                Set<T> valueSet = entry.getValue();
-                putToVarTable(key, valueSet);
+                List<T> valueList = entry.getValue();
+                putToVarTable(key, valueList);
             }
             rightTree.varTable = null;
         }
@@ -106,12 +108,12 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
         }
     }
 
-    protected boolean validateSolve(Set<T> leafSet, V target) {
-        if (leafSet == null) {
+    protected boolean validateSolve(List<T> leafList, V target) {
+        if (leafList == null) {
             return false; // varTable does not contain this target, do nothing
         }
 
-        for (T leaf : leafSet) {
+        for (T leaf : leafList) {
             if ( !leaf.isLeaf) {
                 throw new RuntimeException("varTable should hold a leaf contains the target, while this TreeValue is not a leaf: " + leaf);
             }
@@ -138,13 +140,13 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
 
             case VAR:
             case REDUCED: {
-                Set<T> leafSet = root.varTable.get(target);
-                if (!validateSolve(leafSet, target)) {
+                List<T> leafList = root.varTable.get(target);
+                if (!validateSolve(leafList, target)) {
                     return;
                 }
 
                 root.varTable.remove(target);
-                for (T leaf : leafSet) {
+                for (T leaf : leafList) {
                     leaf.leafValue = reducedValue;
                     leaf.type = Type.REDUCED;
                 }
@@ -173,12 +175,12 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
 
             case VAR:
             case REDUCED: {
-                Set<T> leafSet = root.varTable.get(target);
-                if (!validateSolve(leafSet, target)) {
+                List<T> leafList = root.varTable.get(target);
+                if (!validateSolve(leafList, target)) {
                     return;
                 }
                 root.varTable.remove(target);
-                for (T leaf : leafSet) {
+                for (T leaf : leafList) {
                     leaf.type = Type.VAR;
                     leaf.leafValue = substitution;
                     putToVarTable(substitution, leaf);
@@ -202,8 +204,8 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
 
             case VAR:
             case REDUCED: {
-                Set<T> leafSet = root.varTable.get(target);
-                if (!validateSolve(leafSet, target)) {
+                List<T> leafList = root.varTable.get(target);
+                if (!validateSolve(leafList, target)) {
                     return;
                 }
 
@@ -217,7 +219,7 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
                 }
 
                 //if subTree is a leaf, then we just copy it leafValue, otherwise, we jsut copy the left and right child of this subTree
-                for (T leaf : leafSet) {
+                for (T leaf : leafList) {
                     if (subTree.isLeaf) {
                         leaf.type = subTree.type;
                         leaf.leafValue = subTree.leafValue;
@@ -247,17 +249,17 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
     public void putToVarTable(V target, T singleLeaf) {
         if (!root.varTable.containsKey(target)) {
             // Generally this would only put one value when initiate the set, and rarely would add more values to the same set
-            Set<T> leafSet = new HashSet<T>(1);
-            root.varTable.put(target, leafSet);
+            List<T> leafList = new ArrayList<T>(1);
+            root.varTable.put(target, leafList);
         }
         root.varTable.get(target).add(singleLeaf);
     }
 
-    public void putToVarTable(V target, Set<T> leafSet) {
+    public void putToVarTable(V target, List<T> leafList) {
         if (root.varTable.containsKey(target)) {
-            root.varTable.get(target).addAll(leafSet);
+            root.varTable.get(target).addAll(leafList);
         } else {
-            root.varTable.put(target, leafSet);
+            root.varTable.put(target, leafList);
         }
     }
 
