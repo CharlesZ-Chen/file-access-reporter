@@ -8,7 +8,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.dataflow.cfg.node.StringConversionNode;
 
 public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>> {
     public enum Type {
@@ -295,12 +297,25 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
         this.right = right;
     }
 
+    public static String prepareNodeSimpleName(String className) {
+        return className.replace("class org.checkerframework.dataflow.cfg.node.", "");
+    }
     @Override
     public String toString() {
         switch (type) {
             case TOP:
                 return "TOP";
-            case VAR:
+            case VAR: {
+                if (isLeaf) {
+                    Node nodeValue = (Node) leafValue;
+                    if (nodeValue instanceof StringConversionNode) {
+                        return nodeValue.toString();
+                    } else {
+                        return TreeValue.prepareNodeSimpleName(nodeValue.getClass().toString()) + "(" + nodeValue.toString() + ")";
+                    }
+                }
+                // otherwise using same logic as reduced
+            }
             case REDUCED: {
                 if (isLeaf) {
                     return leafValue.toString();
