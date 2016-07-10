@@ -12,7 +12,6 @@ public class Main {
 
     public static void main(String[] args) {
 
-
         /* Configuration: change as appropriate */
         String inputFile = "/Users/charleszhuochen/Desktop/Test.java"; // input file name and path
         String outputDir = "/Users/charleszhuochen/Desktop/cfg"; // output directory
