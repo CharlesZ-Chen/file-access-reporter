@@ -17,9 +17,10 @@ import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ObjectCreationNode;
 import org.checkerframework.dataflow.cfg.node.ReturnNode;
+import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
 import org.checkerframework.javacutil.TypesUtils;
 
-import analysis.value.PathValue;
+import analysis.classic.PathValue;
 import utils.FileAccessUtils;
 
 public class FileAccessTransfer
@@ -67,7 +68,7 @@ public class FileAccessTransfer
         TypeMirror expressionType = expression.getType();
 
         //TODO: need consider about field
-        if (target instanceof LocalVariableNode && TypesUtils.isDeclaredOfName(expressionType, "java.io.File")) {
+        if (TypesUtils.isDeclaredOfName(expressionType, "java.io.File")) {
             //TODO: extract out this block as a method?
             if (expression instanceof ObjectCreationNode) {
                 ObjectCreationNode oNode = (ObjectCreationNode) expression;
@@ -79,6 +80,7 @@ public class FileAccessTransfer
                     PathValue pathValue = FileAccessUtils.createPathValue(args);
                     store.trackStrVarInArgs(args);
                     store.putToFileMap(n.getTarget(), pathValue);
+
                     return new RegularTransferResult<>(pathValue, store);
                 }
             }
@@ -89,7 +91,9 @@ public class FileAccessTransfer
         if (TypesUtils.isDeclaredOfName(expressionType, "java.lang.String")) {
             FileAccessStore store = p.getRegularStore();
             if (store.isTrackingStrVar(target)) {
-                System.out.println("solve :" + expression);
+                if (expression instanceof StringConcatenateNode) {
+                    store.trackStrInConcatenation((StringConcatenateNode) expression);
+                }
                 store.solveStrVar(target,  expression);
                 return new RegularTransferResult<>(null, store);
             }

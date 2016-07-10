@@ -1,4 +1,4 @@
-package analysis.value;
+package analysis.classic;
 
 import java.util.List;
 
@@ -26,10 +26,8 @@ public class SingleStrPath extends PathValue {
     public SingleStrPath leastUpperBound(PathValue other) {
         SingleStrPath otherSingleStrPath = (SingleStrPath) other;
         StrValue otherPath = otherSingleStrPath.getPath();
-        System.out.println("merge " + this + " with " + other);
         StrValue newPath = this.path.leastUpperBound(otherPath);
         SingleStrPath lub = new SingleStrPath(newPath);
-        System.out.println("after merge: " + lub);
         return lub;
     }
 

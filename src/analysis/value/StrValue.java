@@ -1,204 +1,172 @@
 package analysis.value;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.checkerframework.dataflow.analysis.AbstractValue;
+import org.checkerframework.dataflow.cfg.node.FieldAccessNode;
 import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
 import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
 
-import analysis.FileAccessStore;
+public class StrValue extends TreeValue<Node, String, StrValue> implements AbstractValue<StrValue>{
 
-/**
- * TODO: currently not consider CONCATENATION
- * @author charleszhuochen
- *
- */
-public class StrValue implements AbstractValue<StrValue> {
-
-    public enum Type {
-        TOP,
-        COMPOSITION,
-        LOCAL_VAR,
-        LITERAL;
+    public StrValue(Type type, Object leafValue) {
+        super(type, leafValue);
     }
 
-    private Type type;
-
-    /**
-     * follow invariant should be hold:
-     * topVar == null <=> literalVals != null && localVars != null
-     * topVar != null <=> literalVals == null && localVars == null
-     */
-    final Node topVar;
-    final Set<String> literalVals;
-    final Set<Node> variables;
-
-    public List<String> getValues() {
-        List<String> values = new ArrayList<>();
-        if (type == Type.TOP) {
-            values.add("<var>" + topVar.toString() + "</var>");
-            return values;
-        }
-
-        for (String literal : literalVals) {
-            values.add(literal);
-        }
-
-        for (Node var : variables) {
-            values.add("<var>" + var.toString() + "</var>");
-        }
-        return values;
+    public StrValue (Type type) {
+        super(type);
     }
 
-    public void solve(Node target, Node expression) {
-        if (type == Type.TOP || !variables.contains(target)) {
+    public StrValue(StrValue left, StrValue right) {
+        super(left, right);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+
+        if (!(obj instanceof StrValue)) {
+            return false;
+        }
+
+        StrValue other = (StrValue) obj;
+        if (this.type != other.type) {
+            return false;
+        }
+
+        switch(other.type) {
+            case TOP:
+            case MERGE:
+            case VAR:
+            case REDUCED:
+            default:
+                assert false;
+                return false;
+        }
+    };
+    @Override
+    public StrValue leastUpperBound(StrValue other) {
+        if (this.type == Type.TOP || other.getType() == Type.TOP) {
+            return new StrValue(Type.TOP);
+        }
+
+        // lub would only get called when two branches needed to merged, thus the lub would always be Type.MERGE
+        StrValue lub = new StrValue(Type.MERGE);
+        mergeStrValue(lub, this);
+        mergeStrValue(lub, other);
+        return lub;
+    }
+
+    public static void mergeStrValue (StrValue target, StrValue source) {
+        assert target.type ==  Type.MERGE;
+        if (source.type == Type.TOP) {
             return;
         }
 
-        if (expression instanceof StringLiteralNode) {
-            StringLiteralNode literalNode = (StringLiteralNode) expression;
-            literalVals.add(literalNode.getValue());
-            variables.remove(target);
-            if (variables.isEmpty()) {
-                this.type = Type.LITERAL;
+        if (source.type == Type.MERGE) {
+            for (StrValue strValue : source.mergedSet) {
+                StrValue copy = strValue.copy();
+                target.mergedSet.add(copy);
             }
-            
-            return;
+        } else {
+            StrValue copy = source.copy();
+            target.mergedSet.add(copy);
         }
-
-        variables.remove(target);
-        variables.add(expression);
     }
 
-    public StrValue(Type type, Node topVar) {
-        this.type = type;
-        switch (this.type) {
-        case LITERAL:
-        case COMPOSITION:
-        case LOCAL_VAR: {
-            this.topVar = null;
-            this.literalVals = new HashSet<>();
-            this.variables = new HashSet<>();
-            break;
-        }
-
-        case TOP: {
-            // TODO: think clear about initialization
-            assert topVar != null : "initialize TOP StrValue expect a non-null topVar reference.";
-            this.topVar = topVar;
-            this.literalVals = null;
-            this.variables = null;
-            break;
-        }
-
-        default:
-            assert false : "unexpected type: " + type;
-            this.topVar = null;
-            this.literalVals = null;
-            this.variables = null;
-        }
-
-    }
-
-    public StrValue(Type type) {
-      this(type, null);
-    }
-
-    public final Type getType() {
-        return this.type;
-    }
-
-    public Node getTopVar() {
-        return topVar;
-    }
-
-    public Set<String> getLiteralVals() {
-        return literalVals;
-    }
-
-    public Set<Node> getVariables() {
-        return variables;
-    }
-
-    public void addLiterals(String... literals) {
-        this.literalVals.addAll(Arrays.asList(literals));
-    }
-
-    public void addVariables(Node... variables) {
-        this.variables.addAll(Arrays.asList(variables));
-    }
-
-    public void addLiterals(Set<String> literals) {
-        this.literalVals.addAll(literals);
-    }
-
-    public void addVariables(Set<Node> variables) {
-        this.variables.addAll(variables);
-    }
-
-    public StrValue copy() {
-        switch (this.type) {
-        case TOP: {
-            assert variables == null && literalVals == null;
-            return new StrValue(type, topVar);
-        }
-
-        case COMPOSITION: {
-            StrValue copy = new StrValue(Type.COMPOSITION);
-            copy.addLiterals(literalVals);
-            copy.addVariables(variables);
-            return copy;
-        }
-
-        case LOCAL_VAR: {
-            assert this.literalVals.isEmpty();
-            StrValue copy = new StrValue(Type.LOCAL_VAR);
-            copy.addVariables(variables);
-            return copy;
-        }
-
-        case LITERAL: {
-            assert this.variables.isEmpty();
-            StrValue copy = new StrValue(Type.LITERAL);
-            copy.addLiterals(literalVals);
-            return copy;
-        }
-
-        default:
-            assert false;
-            return null;
+    public StrValue buildStrValue(Node node) {
+        if (node instanceof StringLiteralNode) {
+            return new StrValue(Type.REDUCED, ((StringLiteralNode) node).getValue());
+        }else if (node instanceof LocalVariableNode ||
+                node instanceof FieldAccessNode) {
+            return new StrValue(Type.VAR, node);
+        } else if (node instanceof StringConcatenateNode) {
+            StringConcatenateNode scNode = (StringConcatenateNode) node;
+            StrValue left = buildStrValue(scNode.getLeftOperand());
+            StrValue right = buildStrValue(scNode.getRightOperand());
+            StrValue root = new StrValue(left, right);
+            return root;
+        } else {
+            System.out.println("===========missing consideration of this: " + node.getClass());
+            return new StrValue(Type.VAR, node);
         }
     }
 
     @Override
-    public StrValue leastUpperBound(StrValue other) {
-       if (this.type == Type.TOP || other.getType() == Type.TOP) {
-           // TODO: is this.topVar always equal to other.topVar?
-           assert this.topVar != null && this.topVar.equals(other.getTopVar());
-           return new StrValue(Type.TOP, this.topVar);
-       }
+    public void solveVar(Node target, Node expression) {
+        switch (this.type) {
+            case TOP: return;
+            case MERGE: {
+                System.out.println("====before solve: " + this.toString());
+                for (StrValue strValue : mergedSet) {
+                    strValue.solveVar(target, expression);
+                }
+                System.out.println("------after solve: " + this.toString());
+                return;
+            }
 
-       assert this.literalVals != null && this.variables != null;
-       assert other.getLiteralVals() != null && other.getVariables() != null;
+            case REDUCED: {
+                return; // reduced type doesn't need to solve anymore
+            }
 
-       StrValue lubValue = null;
-       if (literalVals.isEmpty() && other.getLiteralVals().isEmpty()) {
-           lubValue = new StrValue(Type.LOCAL_VAR);
-       } else if (variables.isEmpty() && other.getVariables().isEmpty()) {
-           lubValue = new StrValue(Type.LITERAL);
-       } else {
-           lubValue = new StrValue(Type.COMPOSITION);
-       }
+            case VAR: {
+                if (!root.varTable.containsKey(target)) {
+                    return;
+                }
 
-       lubValue.addLiterals(literalVals);
-       lubValue.addLiterals(other.getLiteralVals());
-       lubValue.addVariables(variables);
-       lubValue.addVariables(other.getVariables());
-       return lubValue;
+                if (expression instanceof StringLiteralNode) {
+                    StringLiteralNode literalNode = (StringLiteralNode) expression;
+                    solve(target, literalNode.getValue());
+                } else if (expression instanceof StringConcatenateNode) {
+                    StrValue concatenateValue = buildStrValue(expression);
+                    solve(target, concatenateValue);
+                } else {
+                    solve(target, expression);
+                }
+            }
+            default:
+                assert false;
+                return;
+        }
+        
+    }
+
+    @Override
+    public void reduce() {
+        // TODO Auto-generated method stub
+    }
+
+    @Override
+    public StrValue copy() {
+        switch (this.type) {
+            case TOP: {
+                return new StrValue(Type.TOP);
+            }
+
+            case MERGE: {
+                StrValue copy = new StrValue(Type.MERGE);
+                for (StrValue strValue : this.mergedSet) {
+                    copy.mergedSet.add(strValue.copy());
+                }
+                return copy;
+            }
+
+            case VAR:
+            case REDUCED: {
+                if (this.isLeaf) {
+                    return new StrValue(this.type, this.leafValue);
+                }
+
+                StrValue left = this.left.copy();
+                StrValue right = this.right.copy();
+                return new StrValue(left, right);
+            }
+
+            default:
+                assert false;
+                return null;
+        }
     }
 }

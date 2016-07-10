@@ -3,12 +3,10 @@ package playground;
 import org.checkerframework.dataflow.analysis.Analysis;
 import org.checkerframework.dataflow.analysis.BackwardAnalysisImpl;
 import org.checkerframework.dataflow.cfg.CFGVisualizeLauncher;
-import org.checkerframework.dataflow.cfg.ControlFlowGraph;
-import org.checkerframework.dataflow.cfg.JavaSource2CFG;
 
 import analysis.FileAccessStore;
 import analysis.FileAccessTransfer;
-import analysis.value.PathValue;
+import analysis.classic.PathValue;
 
 public class Main {
 

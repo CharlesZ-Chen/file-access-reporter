@@ -1,6 +1,5 @@
 package utils;
 
-import java.awt.dnd.MouseDragGestureRecognizer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,12 +16,13 @@ import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
 import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
 import org.checkerframework.javacutil.TypesUtils;
 
-import analysis.value.FileStrPath;
-import analysis.value.PathValue;
-import analysis.value.StrValue;
-import analysis.value.PathValue.Type;
-import analysis.value.SingleStrPath;
-import analysis.value.StrComPath;
+import analysis.classic.FileStrPath;
+import analysis.classic.PathValue;
+import analysis.classic.SingleStrPath;
+import analysis.classic.StrComPath;
+import analysis.classic.StrValue;
+import analysis.value.TreeValue;
+import analysis.classic.PathValue.Type;
 
 public class FileAccessUtils {
 
@@ -53,6 +53,7 @@ public class FileAccessUtils {
         mergedSet.addAll(set2);
         return mergedSet;
     }
+
     public static PathValue createPathValue(List<Node> args) {
         PathValue.Type pathType = getPathType(args);
 

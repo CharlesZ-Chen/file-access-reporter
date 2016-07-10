@@ -1,4 +1,4 @@
-package analysis.value;
+package analysis.classic;
 
 import java.util.Collections;
 import java.util.HashMap;

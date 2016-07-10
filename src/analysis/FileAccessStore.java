@@ -13,25 +13,74 @@ import org.checkerframework.dataflow.cfg.CFGVisualizer;
 import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ReturnNode;
+import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
+import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
 import org.checkerframework.javacutil.TypesUtils;
 
-import analysis.value.PathValue;
+import analysis.classic.PathValue;
+import analysis.value.StrValue;
+import analysis.value.TreeValue;
 import utils.FileAccessUtils;
 
 public class FileAccessStore implements Store<FileAccessStore> {
 
     protected Map<Node, PathValue> filePathMap;
-    protected Set<Node> strVarSet;
+    protected Map<Node, StrValue> strMap;
+    protected Set<Node> trackVarSet;
 
     public FileAccessStore() {
         filePathMap = new HashMap<>();
-        strVarSet = new HashSet<>();
+        trackVarSet = new HashSet<>();
+        strMap = new HashMap<>();
     }
 
     public FileAccessStore(Map<Node, PathValue> filePathMap,
-            Set<Node> strVarSet) {
+            Set<Node> strVarSet, Map<Node, StrValue> strMap) {
         this.filePathMap = new HashMap<>(filePathMap);
-        this.strVarSet = new HashSet<>(strVarSet);
+        this.trackVarSet = new HashSet<>(strVarSet);
+        this.strMap = strMap;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (!(obj instanceof FileAccessStore)) {
+            return false;
+        }
+
+        FileAccessStore other = (FileAccessStore) obj;
+
+        // first go through other
+        for (Node trackVar : other.trackVarSet) {
+            if (!trackVarSet.contains(trackVar)) {
+                return false;
+            }
+        }
+
+        for (Entry<Node, StrValue> entry : other.strMap.entrySet()) {
+            StrValue value = strMap.get(entry.getKey());
+            if (value == null || !value.equals(entry.getValue())) {
+                return false;
+            }
+        }
+
+        // next go through this compare with other
+        for (Node trackVar : trackVarSet) {
+            if (!other.trackVarSet.contains(trackVar)) {
+                return false;
+            }
+        }
+
+        for (Entry<Node, StrValue> entry : strMap.entrySet()) {
+            StrValue value = other.strMap.get(entry.getKey());
+            if (value == null || !value.equals(entry.getValue())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override
@@ -40,7 +89,11 @@ public class FileAccessStore implements Store<FileAccessStore> {
         for (Entry<Node, PathValue> entry : filePathMap.entrySet()) {
             copyFilePathMap.put(entry.getKey(), entry.getValue().copy());
         }
-        return new FileAccessStore(copyFilePathMap, new HashSet<>(strVarSet));
+        Map<Node, StrValue> copyStrMap = new HashMap<>();
+        for (Entry<Node, StrValue> entry : strMap.entrySet()) {
+            copyStrMap.put(entry.getKey(), entry.getValue().copy());
+        }
+        return new FileAccessStore(copyFilePathMap, new HashSet<>(trackVarSet), copyStrMap);
     }
 
     @Override
@@ -48,8 +101,12 @@ public class FileAccessStore implements Store<FileAccessStore> {
         Map<Node, PathValue> newFilePathMap =
                 FileAccessUtils.merge(filePathMap, other.filePathMap);
         Set<Node> newStrVarSet =
-                FileAccessUtils.merge(strVarSet, other.strVarSet);
-        return new FileAccessStore(newFilePathMap, newStrVarSet);
+                FileAccessUtils.merge(trackVarSet, other.trackVarSet);
+        Map<Node, StrValue> newStrMap = FileAccessUtils.merge(strMap, other.strMap);
+//        for (Entry<Node, StrValue> entry : newStrMap.entrySet()) {
+//            System.out.println("lub: " + entry.getKey() + " -> " + entry.getValue() + " type: " + entry.getValue().getType() );
+//        }
+        return new FileAccessStore(newFilePathMap, newStrVarSet, newStrMap);
     }
 
     @Override
@@ -59,7 +116,11 @@ public class FileAccessStore implements Store<FileAccessStore> {
 
     @Override
     public void visualize(CFGVisualizer<?, FileAccessStore, ?> viz) {
-        for (Entry<Node, PathValue> entry : filePathMap.entrySet()) {
+//        for (Entry<Node, PathValue> entry : filePathMap.entrySet()) {
+//            viz.visualizeStoreKeyVal(entry.getKey().toString(), entry.getValue());
+//        }
+        for (Entry<Node, StrValue> entry : strMap.entrySet()) {
+//            System.out.println(entry.getKey().toString() + " : " + entry.getValue().toString());
             viz.visualizeStoreKeyVal(entry.getKey().toString(), entry.getValue());
         }
     }
@@ -78,8 +139,12 @@ public class FileAccessStore implements Store<FileAccessStore> {
             }
 
             if (arg instanceof LocalVariableNode) {
-                this.strVarSet.add(arg);
+                System.out.println("track: " + arg);
+                this.trackVarSet.add(arg);
+                StrValue strValue = new StrValue(TreeValue.Type.VAR, arg);
+                this.strMap.put(arg, strValue);
             }
+            //TODO: tracking var in concatenation either!
         }
     }
 
@@ -98,12 +163,28 @@ public class FileAccessStore implements Store<FileAccessStore> {
      * @return
      */
     public boolean isTrackingStrVar(Node node) {
-        return strVarSet.contains(node);
+        return trackVarSet.contains(node);
     }
 
     public void solveStrVar(Node strVar, Node expression) {
-        for (PathValue pathValue : filePathMap.values()) {
-            pathValue.solveVar(strVar, expression);
+        for (StrValue strValue : strMap.values()) {
+            strValue.solveVar(strVar, expression);
+        }
+    }
+
+    public void trackStrInConcatenation(StringConcatenateNode scNode) {
+        Node leftOpd = scNode.getLeftOperand();
+        Node rightOpd = scNode.getRightOperand();
+        if (leftOpd instanceof StringConcatenateNode) {
+            trackStrInConcatenation((StringConcatenateNode) leftOpd);
+        } else if (! (leftOpd instanceof StringLiteralNode)) {
+            trackVarSet.add(leftOpd);
+        }
+
+        if (rightOpd instanceof StringConcatenateNode) {
+            trackStrInConcatenation((StringConcatenateNode) rightOpd);
+        } else if (! (rightOpd instanceof StringLiteralNode)) {
+            trackVarSet.add(rightOpd);
         }
     }
 }
