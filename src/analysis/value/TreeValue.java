@@ -95,11 +95,7 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
             for (Entry<V, Set<T>> entry : rightTree.varTable.entrySet()) {
                 V key = entry.getKey();
                 Set<T> valueSet = entry.getValue();
-                if (root.varTable.containsKey(key)) {
-                    root.varTable.get(key).addAll(valueSet);
-                } else {
-                    root.varTable.put(key, valueSet);
-                }
+                putToVarTable(key, valueSet);
             }
             rightTree.varTable = null;
         }
@@ -388,23 +384,34 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
     // TODO: current is a VERY SIMPLE one, should have a better hashcode method
     @Override
     public int hashCode() {
+        int hashcode;
         switch (this.type) {
             case TOP: {
                 return super.hashCode(); // all TOP is same. TODO: add distinguishbility among TOPs
             }
 
             case MERGE: { //TODO: should merge type involve super.hashcode()?
-                int hashcode = super.hashCode();
+                hashcode = super.hashCode();
                 for (T treeValue : mergedSet) {
                     hashcode = hashcode ^ (treeValue.hashCode() >>> 16);
                 }
                 return hashcode;
             }
 
-            case REDUCED:
-            case VAR: {
-                int hashcode;
+            case REDUCED: {
                 if (this.isLeaf) {
+                    hashcode = leafValue.hashCode();
+                    return hashcode;
+                }
+                // if reduced is not leaf, then using same logic in var to process left child and right child of this tree
+            }
+            case VAR: {
+                if (this.isLeaf) {
+                    // hashcode = super.hashCode() ^ (leafValue.hashCode() >>> 16);
+                    // currently I do not involve super.hashcode() (which means the instance equality of TreeValue), instead I using the leafValue to
+                    // decide whether two leaf TreeValues are equal. This is a tradeoff to avoid infinite iteration when processing loop. But since two TreeValue
+                    // that contains same leafValue are equal at this situation, the mapping of varTable should using V -> List<T> but not V -> Set<T>, since latter
+                    // will only hold one reference when a concatenation contains same variable more than one time (e.g. str = var + var + "test";)
                     hashcode = leafValue.hashCode();
                     return hashcode;
                 }
