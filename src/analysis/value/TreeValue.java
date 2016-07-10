@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.StringConversionNode;
 
@@ -20,7 +19,6 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
         REDUCED;
     }
 
-    protected final int MAX_SIZE = 10;
     protected Type type;
     protected boolean isLeaf;
     protected Object leafValue;
