@@ -14,6 +14,7 @@ import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ReturnNode;
 import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
+import org.checkerframework.dataflow.cfg.node.StringConversionNode;
 import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
 import org.checkerframework.javacutil.TypesUtils;
 
@@ -137,17 +138,27 @@ public class FileAccessStore implements Store<FileAccessStore> {
             if (!TypesUtils.isDeclaredOfName(arg.getType(), "java.lang.String")) {
                 continue;
             }
-
-            if (arg instanceof LocalVariableNode) {
-                System.out.println("track: " + arg);
-                this.trackVarSet.add(arg);
-                StrValue strValue = new StrValue(TreeValue.Type.VAR, arg);
-                this.strMap.put(arg, strValue);
-            }
-            //TODO: tracking var in concatenation either!
+            trackStrVarInNode(arg);
         }
     }
 
+    public void trackStrVarInNode(Node node) {
+        if (node instanceof StringConcatenateNode) {
+            StringConcatenateNode scNode = (StringConcatenateNode) node;
+            Node leftOpd = scNode.getLeftOperand();
+            trackStrVarInNode(leftOpd);
+            Node rightOpd = scNode.getRightOperand();
+            trackStrVarInNode(rightOpd);
+        } else if (node instanceof StringLiteralNode) {
+            //don't track literal
+        }
+        else {
+            System.out.println("track: " + node);
+            this.trackVarSet.add(node);
+            StrValue strValue = new StrValue(TreeValue.Type.VAR, node);
+            this.strMap.put(node, strValue);
+        }
+    }
     /**
      * whether this store contains info about {@code ObjectCreationNode} node
      * @param node
