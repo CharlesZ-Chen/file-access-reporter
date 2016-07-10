@@ -62,7 +62,6 @@ public class FileAccessTransfer
     @Override
     public RegularTransferResult<PathValue, FileAccessStore> visitAssignment(AssignmentNode n,
             TransferInput<PathValue, FileAccessStore> p) {
-//        System.out.println("assignment left: " + n.getTarget() + "\tclass " + n.getTarget().getClass());
         Node target = n.getTarget();
         Node expression = n.getExpression();
         TypeMirror expressionType = expression.getType();
