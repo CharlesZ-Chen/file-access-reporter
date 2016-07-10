@@ -51,7 +51,7 @@ public class StrValue extends TreeValue<Node, String, StrValue> implements Abstr
         }
     }
 
-    public StrValue buildStrValue(Node node) {
+    public static StrValue buildStrValue(Node node) {
         if (node instanceof StringLiteralNode) {
             return new StrValue(Type.REDUCED, ((StringLiteralNode) node).getValue());
         }else if (node instanceof LocalVariableNode ||
@@ -110,7 +110,61 @@ public class StrValue extends TreeValue<Node, String, StrValue> implements Abstr
 
     @Override
     public void reduce() {
-        // TODO Auto-generated method stub
+        Type thisType = this.type;
+        switch (thisType) {
+            case TOP: {
+                return;
+            }
+
+            case MERGE: {
+                for (StrValue strValue : mergedSet) {
+                    strValue.reduce();
+                }
+                return;
+            }
+
+            case REDUCED: {
+                if (this.isLeaf) {
+                    if (leafValue instanceof String) {
+                        return;
+                    } else {
+                        throw new  RuntimeException("leaf strValue type is REDUCED, but leafValue is not String! leafValue is: " + leafValue);
+                    }
+                }
+                //otherwise using same code in case VAR
+            }
+
+            case VAR: {
+                if (this.isLeaf) {
+                    if (this.leafValue instanceof String) {
+                        this.type = Type.REDUCED; //TODO: need think clear whether this is safe
+                    }
+                    return;
+                }
+                if (!left.isLeaf) {
+                    left.reduce();
+                }
+                if (!right.isLeaf) {
+                    right.reduce();
+                }
+                if ((left.isLeaf && left.leafValue instanceof String) &&
+                        (right.isLeaf && right.leafValue instanceof String)) {
+                    String newLeafValue = ((String) left.leafValue) + ((String) right.leafValue);
+                    this.leafValue = newLeafValue;
+                    this.isLeaf = true;
+                    this.left = null;
+                    this.right = null;
+                    this.type = Type.REDUCED;
+                    // also clean varTable and mergeSet
+                    this.varTable = null;
+                    this.mergedSet = null;
+                }
+            }
+
+            default:
+                assert false;
+                return;
+        }
     }
 
     @Override
