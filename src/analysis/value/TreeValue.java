@@ -388,13 +388,13 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
     // TODO: current is a VERY SIMPLE one, should have a better hashcode method
     @Override
     public int hashCode() {
-        int hashcode = super.hashCode();
         switch (this.type) {
             case TOP: {
-                return 1; // all TOP is same. TODO: add distinguishbility among TOPs
+                return super.hashCode(); // all TOP is same. TODO: add distinguishbility among TOPs
             }
 
-            case MERGE: {
+            case MERGE: { //TODO: should merge type involve super.hashcode()?
+                int hashcode = super.hashCode();
                 for (T treeValue : mergedSet) {
                     hashcode = hashcode ^ (treeValue.hashCode() >>> 16);
                 }
@@ -403,11 +403,12 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
 
             case REDUCED:
             case VAR: {
+                int hashcode;
                 if (this.isLeaf) {
-                    hashcode = hashcode ^ (leafValue.hashCode() >>> 16);
+                    hashcode = leafValue.hashCode();
                     return hashcode;
                 }
-                hashcode = hashcode ^ (this.left.hashCode() >>> 16);
+                hashcode = this.left.hashCode() >>> 16;
                 hashcode = hashcode ^ (this.right.hashCode() >>> 16);
             }
             default:
