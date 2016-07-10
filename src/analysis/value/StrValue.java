@@ -22,31 +22,6 @@ public class StrValue extends TreeValue<Node, String, StrValue> implements Abstr
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-
-        if (!(obj instanceof StrValue)) {
-            return false;
-        }
-
-        StrValue other = (StrValue) obj;
-        if (this.type != other.type) {
-            return false;
-        }
-
-        switch(other.type) {
-            case TOP:
-            case MERGE:
-            case VAR:
-            case REDUCED:
-            default:
-                assert false;
-                return false;
-        }
-    };
-    @Override
     public StrValue leastUpperBound(StrValue other) {
         if (this.type == Type.TOP || other.getType() == Type.TOP) {
             return new StrValue(Type.TOP);

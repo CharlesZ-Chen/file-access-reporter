@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import org.checkerframework.dataflow.cfg.node.CaseNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 
 public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>> {
