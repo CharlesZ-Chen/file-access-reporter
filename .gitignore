@@ -3,3 +3,6 @@
 bin/
 .settings/
 analysis-report/
+# java and class file should at src/ and bin/
+*.java
+*.class
