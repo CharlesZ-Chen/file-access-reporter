@@ -101,6 +101,16 @@ public class FileAccessStore implements Store<FileAccessStore> {
         if (!(node instanceof ReturnNode) && !TypesUtils.isDeclaredOfName(node.getType(), "java.io.File")) {
             throw new RuntimeException("non java.io.File node unexpected. node type: " + node.getType());
         }
+
+        // if node is ObjectCreationNode, then if filePathMap.values() contains pathvalue would means
+        // this ObjectCreationNode is a right value of an assignment or a result of return node.
+        // in both case we should not put this node -> value pair into filePathMap to avoid duplicate.
+        if (node instanceof ObjectCreationNode) {
+            if (filePathMap.values().contains(value)) {
+                return;
+            }
+        }
+
         if (!this.filePathMap.containsKey(node)) {
             this.filePathMap.put(node, value);
         } else {

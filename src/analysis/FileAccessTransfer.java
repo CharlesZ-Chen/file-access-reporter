@@ -6,6 +6,7 @@ import javax.lang.model.type.TypeMirror;
 
 import org.checkerframework.dataflow.analysis.BackwardTransferFunction;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
+import org.checkerframework.dataflow.analysis.Store;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
@@ -54,6 +55,20 @@ public class FileAccessTransfer
             }
         }
         return (RegularTransferResult<PathValue, FileAccessStore>) super.visitReturn(n, p);
+    }
+
+    @Override
+    public RegularTransferResult<PathValue, FileAccessStore> visitObjectCreation(ObjectCreationNode n,
+            TransferInput<PathValue, FileAccessStore> p) {
+        if (TypesUtils.isDeclaredOfName(n.getConstructor().getType(), "java.io.File")) {
+            FileAccessStore store = p.getRegularStore();
+            List<Node> args = n.getArguments();
+            PathValue pathValue = TreeValueUtils.createPathValue(args);
+            store.trackVarInArgs(args);
+            store.putToFileMap(n, pathValue);
+            return new RegularTransferResult<> (pathValue, store);
+        }
+        return (RegularTransferResult<PathValue, FileAccessStore>) super.visitObjectCreation(n, p);
     }
 
     @Override
