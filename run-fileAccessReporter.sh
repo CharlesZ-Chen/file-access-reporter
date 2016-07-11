@@ -16,6 +16,9 @@ BIN="$FILE_ACCESS_REPORTER"/bin
 
 JARS="$DATAFLOW_JAR":"$JAVACUTIL_JAR":"$JAVAC_JAR"
 
+##TODO: currently the output_Dir "analysis-report" is HARD CODE in java source code
+# FIleAccessProcessor#FileAccessProcessor(
+# need to extract out as a cmd option
 OUTPUT_DIR="$WORKING_DIR"/analysis-report
 if [ ! -d "$OUTPUT_DIR" ] ; then
     mkdir "$OUTPUT_DIR"
