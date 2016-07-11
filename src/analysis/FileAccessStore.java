@@ -93,6 +93,7 @@ public class FileAccessStore implements Store<FileAccessStore> {
     @Override
     public void visualize(CFGVisualizer<?, FileAccessStore, ?> viz) {
         for (Entry<Node, PathValue> entry : filePathMap.entrySet()) {
+            entry.getValue().reduce(); // do a final reduce before visualize
             viz.visualizeStoreKeyVal(entry.getKey().toString(), entry.getValue().toString());
         }
     }
