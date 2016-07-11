@@ -88,7 +88,7 @@ public class FileAccessProcessor extends BasicTypeProcessor {
         String cfgIdentifier;
         if (ast.getKind() == UnderlyingAST.Kind.METHOD) {
             CFGMethod cfgm = (CFGMethod) ast;
-            cfgIdentifier = cfgm.getClass().getName().toString() + "#" + cfgm.getMethod().getName().toString();
+            cfgIdentifier = cfgm.getClassTree().getSimpleName().toString()+ "#" + cfgm.getMethod().getName().toString();
         } else {
             cfgIdentifier = "non-method";
         }
