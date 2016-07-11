@@ -37,9 +37,8 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
         this(type, null);
     }
 
-    @SuppressWarnings("unchecked")
     public TreeValue (Type type, Object leafValue) {
-        root = (T) this;
+        root = getSubclassInstance();
         this.type = type;
         isLeaf = true;
         this.leafValue = leafValue;
@@ -57,7 +56,7 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
 
         case VAR: {
             root.varTable = new Hashtable<>();
-            putToVarTable((V) leafValue, (T) this);
+            putToVarTable((V) leafValue, getSubclassInstance());
             return;
         }
 
@@ -69,7 +68,6 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
         }
     }
 
-    @SuppressWarnings("unchecked")
     public TreeValue (T leftTree, T rightTree) {
         if (leftTree.type == Type.MERGE || rightTree.type == Type.MERGE ||
                 leftTree.type == Type.TOP || rightTree.type == Type.TOP) {
@@ -83,9 +81,9 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
         }
 
         mergedSet = null;
-        this.root = (T) this;
-        leftTree.root = (T) this;
-        rightTree.root = (T) this;
+        this.root = getSubclassInstance();
+        leftTree.root = getSubclassInstance();
+        rightTree.root = getSubclassInstance();
         this.left = leftTree;
         this.right = rightTree;
         isLeaf = false;
@@ -482,7 +480,10 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
         return lub;
     }
 
-    protected abstract T getSubclassInstance();
+    @SuppressWarnings("unchecked")
+    protected T getSubclassInstance() {
+        return (T) this;
+    }
     protected abstract T createInstance(Type type);
     protected abstract T createInstance(Type type, Object leafValue);
     protected abstract T createInstance(T left, T right);
