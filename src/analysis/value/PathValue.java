@@ -140,7 +140,57 @@ public class PathValue extends TreeValue<Node, StrValue, PathValue> {
 
     @Override
     public void reduce() {
-        // TODO Auto-generated method stub
+        switch (this.type) {
+            case TOP: return;
+
+            case MERGE: {
+                for (PathValue pathValue : mergedSet) {
+                    pathValue.reduce();
+                }
+                return;
+            }
+
+            case VAR:
+            case REDUCED: {
+                if (this.isLeaf) {
+                    if (this.leafValue instanceof StrValue) {
+                        StrValue strValue = (StrValue) this.leafValue;
+                        if (strValue.getType() != Type.REDUCED) {
+                            strValue.reduce();
+                        }
+                    }
+                } else {
+                    left.reduce();
+                    right.reduce();
+                    if ((left.isLeaf && left.leafValue instanceof StrValue) && right.isLeaf) {
+                        assert right.leafValue instanceof StrValue : "only StrValue could be right child in PathValueTree";
+                        StrValue leftValue = (StrValue) left.leafValue;
+                        StrValue rightValue = (StrValue) right.leafValue;
+                        if (leftValue.type == Type.REDUCED && rightValue.type == Type.REDUCED) {
+                            if (!leftValue.isLeaf) {
+                                leftValue.reduce();
+                            }
+                            if (!rightValue.isLeaf) {
+                                rightValue.reduce();
+                            }
+                            assert leftValue.isLeaf && rightValue.isLeaf : "a REDUCED type StrValue should become leaf after calling reduce method.";
+                            String reducedString = leftValue.leafValue.toString() + rightValue.leafValue.toString();
+                            StrValue reducedStrValue = new StrValue(Type.REDUCED, reducedString);
+                            this.isLeaf = true;
+                            this.leafValue = reducedStrValue;
+                            this.left = null;
+                            this.right = null;
+                            this.varTable = null;
+                            this.mergedSet = null;
+                        }
+                    }
+                }
+            }
+
+            default:
+                assert false;
+                return;
+        }
     }
 
     @Override
