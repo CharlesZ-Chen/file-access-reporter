@@ -2,30 +2,16 @@ package utils;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import javax.lang.model.type.TypeMirror;
-
 import org.checkerframework.dataflow.analysis.AbstractValue;
-import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.Node;
-import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
-import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
-import org.checkerframework.javacutil.TypesUtils;
 
-import analysis.classic.FileStrPath;
-import analysis.classic.PathValue;
-import analysis.classic.SingleStrPath;
-import analysis.classic.StrComPath;
-import analysis.classic.StrValue;
-import analysis.value.TreeValue;
-import analysis.classic.PathValue.Type;
+import analysis.value.PathValue;
 
 public class FileAccessUtils {
-
     public static <K, V extends AbstractValue<V>>
         Map<K, V> merge(Map<K, V> leftMap, Map<K, V> rightMap) {
         Map<K, V> mergedMap = new HashMap<>();
@@ -46,6 +32,14 @@ public class FileAccessUtils {
         return mergedMap;
     }
 
+    public static <K, V>
+    void printMap (Map<K, V> map) {
+        System.out.println("===map size is: " + map.size());
+        for (Entry<K, V> entry : map.entrySet()) {
+            System.out.println("\t" + entry.getKey() + " -> " + entry.getValue());
+        }
+    }
+
     public static <E>
     Set<E> merge(Set<E> set1, Set<E> set2) {
         Set<E> mergedSet = new HashSet<>();
@@ -54,95 +48,27 @@ public class FileAccessUtils {
         return mergedSet;
     }
 
-    public static PathValue createPathValue(List<Node> args) {
-        PathValue.Type pathType = getPathType(args);
-
-        switch (pathType) {
-        case SINGLE_STR_PATH: {
-            assert args.size() == 1;
-            StrValue path = FileAccessUtils.createStrValue(args.get(0));
-            return new SingleStrPath(path);
+    public static<K, V>
+    boolean isSuperMap(Map<K, V> superMap, Map<K, V> subMap) {
+        for (Entry<K, V> entry : subMap.entrySet()) {
+            K key = entry.getKey();
+            if (!superMap.containsKey(key)) {
+                return false;
+            }
+            if (!superMap.get(key).equals(entry.getValue())) {
+                return false;
+            }
         }
-
-        case FILE_STR_PATH: {
-            assert args.size() == 2;
-            assert TypesUtils.isDeclaredOfName(args.get(0).getType(), "java.io.File");
-
-            LocalVariableNode parDir = (LocalVariableNode) args.get(0);
-            StrValue childPath = FileAccessUtils.createStrValue(args.get(1));
-            return new FileStrPath(parDir, childPath);
-            
-        }
-
-        case STR_COM_PATH: {
-            assert args.size() == 2;
-            StrValue parDir = FileAccessUtils.createStrValue(args.get(0));
-            StrValue childPath = FileAccessUtils.createStrValue(args.get(1));
-            return new StrComPath(parDir, childPath);
-        }
-
-        case URI_PATH: {
-            // TODO
-            return null;
-        }
-
-        default:
-            assert false;
-            return null;
-        }
+        return true;
     }
 
-    public static PathValue.Type getPathType(List<Node> args) {
-        switch (args.size()) {
-        case 1: {
-            TypeMirror argType = args.get(0).getType();
-
-            if (TypesUtils.isDeclaredOfName(argType, "java.net.URI")) {
-                return Type.URI_PATH;
-            } else if (TypesUtils.isDeclaredOfName(argType, "java.lang.String")) {
-                return Type.SINGLE_STR_PATH;
+    public static<E>
+    boolean isSuperSet(Set<E> superSet, Set<E> subSet) {
+        for (E trackVar : subSet) {
+            if (!superSet.contains(trackVar)) {
+                return false;
             }
-            assert false;
-            return null;
         }
-
-        case 2: {
-            TypeMirror firstArgType = args.get(0).getType();
-            TypeMirror secondArgType = args.get(1).getType();
-
-            if (TypesUtils.isDeclaredOfName(firstArgType, "java.io.File")) {
-                assert TypesUtils.isDeclaredOfName(secondArgType, "java.lang.String");
-                return Type.FILE_STR_PATH;
-            } else if (TypesUtils.isDeclaredOfName(firstArgType, "java.lang.String")) {
-                assert TypesUtils.isDeclaredOfName(secondArgType, "java.lang.String");
-                return Type.STR_COM_PATH;
-            }
-            assert false;
-            return null;
-        }
-
-        default:
-            assert false;
-            return null;
-        }
-    }
-
-    public static StrValue createStrValue(Node strArg) {
-        StrValue path = null;
-        if (strArg instanceof StringLiteralNode) {
-            path = new StrValue(StrValue.Type.LITERAL);
-            path.addLiterals(((StringLiteralNode) strArg).getValue());
-
-        } else if (strArg instanceof LocalVariableNode) {
-            path = new StrValue(StrValue.Type.LOCAL_VAR);
-            path.addVariables((LocalVariableNode) strArg);
-
-        } else if (strArg instanceof StringConcatenateNode) {
-            path = new StrValue(StrValue.Type.TOP, strArg);
-        } else {
-            assert false;
-        }
-
-        return path;
+        return true;
     }
 }

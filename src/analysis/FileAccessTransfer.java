@@ -1,27 +1,26 @@
 package analysis;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.PrimitiveIterator.OfDouble;
 
 import javax.lang.model.type.TypeMirror;
 
 import org.checkerframework.dataflow.analysis.BackwardTransferFunction;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
-import org.checkerframework.dataflow.analysis.Store;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.node.AbstractNodeVisitor;
 import org.checkerframework.dataflow.cfg.node.AssignmentNode;
-import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ObjectCreationNode;
 import org.checkerframework.dataflow.cfg.node.ReturnNode;
 import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
 import org.checkerframework.javacutil.TypesUtils;
 
-import analysis.classic.PathValue;
-import utils.FileAccessUtils;
+import analysis.value.PathValue;
+import utils.TreeValueUtils;
 
 public class FileAccessTransfer
     extends
@@ -50,7 +49,7 @@ public class FileAccessTransfer
             FileAccessStore store = p.getRegularStore();
             if (!store.containsInFilePathMap(n)) {
                 List<Node> args = ((ObjectCreationNode) result).getArguments();
-                PathValue pathValue = FileAccessUtils.createPathValue(args);
+                PathValue pathValue = TreeValueUtils.createPathValue(args);
                 store.trackStrVarInArgs(args);
                 store.putToFileMap(n, pathValue);
                 return new RegularTransferResult<>(pathValue, store);
@@ -68,20 +67,28 @@ public class FileAccessTransfer
 
         //TODO: need consider about field
         if (TypesUtils.isDeclaredOfName(expressionType, "java.io.File")) {
+            FileAccessStore store = p.getRegularStore();
             //TODO: extract out this block as a method?
             if (expression instanceof ObjectCreationNode) {
                 ObjectCreationNode oNode = (ObjectCreationNode) expression;
                 assert TypesUtils.isDeclaredOfName(oNode.getConstructor().getType(), "java.io.File");
 
-                FileAccessStore store = p.getRegularStore();
                 if (!store.containsInFilePathMap(target)) {
                     List<Node> args = oNode.getArguments();
-                    PathValue pathValue = FileAccessUtils.createPathValue(args);
+                    PathValue pathValue = TreeValueUtils.createPathValue(args);
                     store.trackStrVarInArgs(args);
                     store.putToFileMap(n.getTarget(), pathValue);
 
+                    if (store.isTrackingVar(target)) {
+                        store.solveFileVar(target, pathValue);
+                    }
                     return new RegularTransferResult<>(pathValue, store);
                 }
+            } else {
+                if (store.isTrackingVar(target)) {
+                    store.solveFileVar(target, expression);
+                }
+                return new RegularTransferResult<>(null, store);
             }
 
             //TODO: need consider alias among File instances, e.g. File f = f2;
@@ -89,7 +96,7 @@ public class FileAccessTransfer
 
         if (TypesUtils.isDeclaredOfName(expressionType, "java.lang.String")) {
             FileAccessStore store = p.getRegularStore();
-            if (store.isTrackingStrVar(target)) {
+            if (store.isTrackingVar(target)) {
                 if (expression instanceof StringConcatenateNode) {
                     store.trackStrInConcatenation((StringConcatenateNode) expression);
                 }

@@ -1,11 +1,11 @@
 package analysis.value;
 
 import org.checkerframework.dataflow.analysis.AbstractValue;
-import org.checkerframework.dataflow.cfg.node.FieldAccessNode;
-import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
 import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
+
+import utils.TreeValueUtils;
 
 public class StrValue extends TreeValue<Node, String, StrValue> implements AbstractValue<StrValue>{
 
@@ -29,47 +29,11 @@ public class StrValue extends TreeValue<Node, String, StrValue> implements Abstr
 
         // lub would only get called when two branches needed to merged, thus the lub would always be Type.MERGE
         StrValue lub = new StrValue(Type.MERGE);
-        mergeStrValue(lub, this);
-        mergeStrValue(lub, other);
+        TreeValueUtils.mergeStrValue(lub, this);
+        TreeValueUtils.mergeStrValue(lub, other);
         return lub;
     }
 
-    public static void mergeStrValue (StrValue target, StrValue source) {
-        assert target.type ==  Type.MERGE;
-        if (source.type == Type.TOP) {
-            return;
-        }
-
-        if (source.type == Type.MERGE) {
-            for (StrValue strValue : source.mergedSet) {
-                StrValue copy = strValue.copy();
-                target.mergedSet.add(copy);
-            }
-        } else {
-            StrValue copy = source.copy();
-            target.mergedSet.add(copy);
-        }
-    }
-
-    public static StrValue buildStrValue(Node node) {
-        if (node instanceof StringLiteralNode) {
-            return new StrValue(Type.REDUCED, ((StringLiteralNode) node).getValue());
-        }else if (node instanceof LocalVariableNode ||
-                node instanceof FieldAccessNode) {
-            return new StrValue(Type.VAR, node);
-        } else if (node instanceof StringConcatenateNode) {
-            StringConcatenateNode scNode = (StringConcatenateNode) node;
-            StrValue left = buildStrValue(scNode.getLeftOperand());
-            StrValue right = buildStrValue(scNode.getRightOperand());
-            StrValue root = new StrValue(left, right);
-            return root;
-        } else {
-            System.out.println("===========missing consideration of this: " + node.getClass());
-            return new StrValue(Type.VAR, node);
-        }
-    }
-
-    @Override
     public void solveVar(Node target, Node expression) {
         switch (this.type) {
             case TOP: return;
@@ -95,7 +59,7 @@ public class StrValue extends TreeValue<Node, String, StrValue> implements Abstr
                     StringLiteralNode literalNode = (StringLiteralNode) expression;
                     solve(target, literalNode.getValue());
                 } else if (expression instanceof StringConcatenateNode) {
-                    StrValue concatenateValue = buildStrValue(expression);
+                    StrValue concatenateValue = TreeValueUtils.createStrValue(expression);
                     solve(target, concatenateValue);
                 } else {
                     solve(target, expression);

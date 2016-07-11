@@ -1,5 +1,6 @@
 package analysis;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -10,36 +11,28 @@ import java.util.Set;
 import org.checkerframework.dataflow.analysis.FlowExpressions.Receiver;
 import org.checkerframework.dataflow.analysis.Store;
 import org.checkerframework.dataflow.cfg.CFGVisualizer;
-import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ReturnNode;
 import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
-import org.checkerframework.dataflow.cfg.node.StringConversionNode;
 import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
 import org.checkerframework.javacutil.TypesUtils;
 
-import analysis.classic.PathValue;
-import analysis.value.StrValue;
-import analysis.value.TreeValue;
+import analysis.value.PathValue;
 import utils.FileAccessUtils;
 
 public class FileAccessStore implements Store<FileAccessStore> {
 
     protected Map<Node, PathValue> filePathMap;
-    protected Map<Node, StrValue> strMap;
     protected Set<Node> trackVarSet;
 
     public FileAccessStore() {
         filePathMap = new HashMap<>();
         trackVarSet = new HashSet<>();
-        strMap = new HashMap<>();
     }
 
-    public FileAccessStore(Map<Node, PathValue> filePathMap,
-            Set<Node> strVarSet, Map<Node, StrValue> strMap) {
+    public FileAccessStore(Map<Node, PathValue> filePathMap, Set<Node> strVarSet) {
         this.filePathMap = new HashMap<>(filePathMap);
         this.trackVarSet = new HashSet<>(strVarSet);
-        this.strMap = strMap;
     }
 
     @Override
@@ -54,33 +47,20 @@ public class FileAccessStore implements Store<FileAccessStore> {
         FileAccessStore other = (FileAccessStore) obj;
 
         // first go through other
-        for (Node trackVar : other.trackVarSet) {
-            if (!trackVarSet.contains(trackVar)) {
-                return false;
-            }
+        if (!FileAccessUtils.isSuperSet(other.trackVarSet, this.trackVarSet)) {
+            return false;
         }
-
-        for (Entry<Node, StrValue> entry : other.strMap.entrySet()) {
-            StrValue value = strMap.get(entry.getKey());
-            if (value == null || !value.equals(entry.getValue())) {
-                return false;
-            }
+        if (!FileAccessUtils.isSuperMap(other.filePathMap, this.filePathMap)) {
+            return false;
         }
 
         // next go through this compare with other
-        for (Node trackVar : trackVarSet) {
-            if (!other.trackVarSet.contains(trackVar)) {
-                return false;
-            }
+        if (!FileAccessUtils.isSuperSet(this.trackVarSet, other.trackVarSet)) {
+            return false;
         }
-
-        for (Entry<Node, StrValue> entry : strMap.entrySet()) {
-            StrValue value = other.strMap.get(entry.getKey());
-            if (value == null || !value.equals(entry.getValue())) {
-                return false;
-            }
+        if (!FileAccessUtils.isSuperMap(this.filePathMap, other.filePathMap)) {
+            return false;
         }
-
         return true;
     }
 
@@ -90,24 +70,17 @@ public class FileAccessStore implements Store<FileAccessStore> {
         for (Entry<Node, PathValue> entry : filePathMap.entrySet()) {
             copyFilePathMap.put(entry.getKey(), entry.getValue().copy());
         }
-        Map<Node, StrValue> copyStrMap = new HashMap<>();
-        for (Entry<Node, StrValue> entry : strMap.entrySet()) {
-            copyStrMap.put(entry.getKey(), entry.getValue().copy());
-        }
-        return new FileAccessStore(copyFilePathMap, new HashSet<>(trackVarSet), copyStrMap);
+        return new FileAccessStore(copyFilePathMap, new HashSet<>(trackVarSet));
     }
 
     @Override
     public FileAccessStore leastUpperBound(FileAccessStore other) {
+
         Map<Node, PathValue> newFilePathMap =
                 FileAccessUtils.merge(filePathMap, other.filePathMap);
         Set<Node> newStrVarSet =
                 FileAccessUtils.merge(trackVarSet, other.trackVarSet);
-        Map<Node, StrValue> newStrMap = FileAccessUtils.merge(strMap, other.strMap);
-//        for (Entry<Node, StrValue> entry : newStrMap.entrySet()) {
-//            System.out.println("lub: " + entry.getKey() + " -> " + entry.getValue() + " type: " + entry.getValue().getType() );
-//        }
-        return new FileAccessStore(newFilePathMap, newStrVarSet, newStrMap);
+        return new FileAccessStore(newFilePathMap, newStrVarSet);
     }
 
     @Override
@@ -117,12 +90,8 @@ public class FileAccessStore implements Store<FileAccessStore> {
 
     @Override
     public void visualize(CFGVisualizer<?, FileAccessStore, ?> viz) {
-//        for (Entry<Node, PathValue> entry : filePathMap.entrySet()) {
-//            viz.visualizeStoreKeyVal(entry.getKey().toString(), entry.getValue());
-//        }
-        for (Entry<Node, StrValue> entry : strMap.entrySet()) {
-//            System.out.println(entry.getKey().toString() + " : " + entry.getValue().toString());
-            viz.visualizeStoreKeyVal(entry.getKey().toString(), entry.getValue());
+        for (Entry<Node, PathValue> entry : filePathMap.entrySet()) {
+            viz.visualizeStoreKeyVal(entry.getKey().toString(), entry.getValue().toString());
         }
     }
 
@@ -131,6 +100,7 @@ public class FileAccessStore implements Store<FileAccessStore> {
             throw new RuntimeException("non java.io.File node unexpected. node type: " + node.getType());
         }
         this.filePathMap.put(node, value);
+        System.out.println("track file: " + node);
     }
 
     public void trackStrVarInArgs(List<Node> args) {
@@ -155,8 +125,6 @@ public class FileAccessStore implements Store<FileAccessStore> {
         else {
             System.out.println("track: " + node);
             this.trackVarSet.add(node);
-            StrValue strValue = new StrValue(TreeValue.Type.VAR, node);
-            this.strMap.put(node, strValue);
         }
     }
     /**
@@ -173,14 +141,22 @@ public class FileAccessStore implements Store<FileAccessStore> {
      * @param node
      * @return
      */
-    public boolean isTrackingStrVar(Node node) {
+    public boolean isTrackingVar(Node node) {
         return trackVarSet.contains(node);
     }
 
     public void solveStrVar(Node strVar, Node expression) {
-        for (StrValue strValue : strMap.values()) {
-            strValue.solveVar(strVar, expression);
+        for (PathValue pathValue : filePathMap.values()) {
+            pathValue.solveStrVar(strVar, expression);
         }
+    }
+
+    public void solveFileVar(Node fileVar, PathValue substitution) {
+        //TODO
+    }
+
+    public void solveFileVar(Node fileVar, Node substitution) {
+        //TODO
     }
 
     public void trackStrInConcatenation(StringConcatenateNode scNode) {

@@ -126,8 +126,6 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
         return true;
     }
 
-    public abstract void solveVar(Node target, Node expression);
-
     public void solve(V target, R reducedValue) {
         switch (this.type) {
             case TOP: return;

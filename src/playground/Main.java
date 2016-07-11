@@ -6,7 +6,7 @@ import org.checkerframework.dataflow.cfg.CFGVisualizeLauncher;
 
 import analysis.FileAccessStore;
 import analysis.FileAccessTransfer;
-import analysis.classic.PathValue;
+import analysis.value.PathValue;
 
 public class Main {
 
