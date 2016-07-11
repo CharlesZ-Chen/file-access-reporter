@@ -1,10 +1,12 @@
 package analysis;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
 import java.util.Set;
 
 import org.checkerframework.dataflow.analysis.FlowExpressions.Receiver;
@@ -136,7 +138,6 @@ public class FileAccessStore implements Store<FileAccessStore> {
                 if (arg instanceof ObjectCreationNode) {
                     trackVarInArgs(((ObjectCreationNode) arg).getArguments());
                 } else {
-                    System.out.println("track file: " + arg);
                     trackVarSet.add(arg);
                 }
             }
@@ -154,7 +155,6 @@ public class FileAccessStore implements Store<FileAccessStore> {
             //don't track literal
         }
         else {
-            System.out.println("track str: " + node);
             this.trackVarSet.add(node);
         }
     }
@@ -208,5 +208,9 @@ public class FileAccessStore implements Store<FileAccessStore> {
         } else if (! (rightOpd instanceof StringLiteralNode)) {
             trackVarSet.add(rightOpd);
         }
+    }
+
+    public final Map<Node, PathValue> getFilePathMap() {
+        return Collections.unmodifiableMap(this.filePathMap);
     }
 }
