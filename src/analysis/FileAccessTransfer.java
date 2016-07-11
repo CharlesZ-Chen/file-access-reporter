@@ -6,7 +6,6 @@ import javax.lang.model.type.TypeMirror;
 
 import org.checkerframework.dataflow.analysis.BackwardTransferFunction;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
-import org.checkerframework.dataflow.analysis.Store;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
