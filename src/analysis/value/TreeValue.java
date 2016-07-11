@@ -8,10 +8,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import org.checkerframework.dataflow.analysis.AbstractValue;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.StringConversionNode;
 
-public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>> {
+import utils.TreeValueUtils;
+
+public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>> implements AbstractValue<T> {
     public enum Type {
         TOP,
         MERGE,
@@ -240,7 +243,36 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
         }
     }
 
-    public abstract T copy();
+    public T copy() {
+        switch (this.type) {
+        case TOP: {
+            return createInstance(Type.TOP);
+        }
+
+        case MERGE: {
+            T copy = createInstance(Type.MERGE);
+            for (T treeValue : this.mergedSet) {
+                copy.mergedSet.add(treeValue.copy());
+            }
+            return copy;
+        }
+
+        case VAR:
+        case REDUCED: {
+            if (this.isLeaf) {
+                return createInstance(this.type, this.leafValue);
+            }
+
+            T left = this.left.copy();
+            T right = this.right.copy();
+            return createInstance(left, right);
+        }
+
+        default:
+            assert false;
+            return null;
+        }
+    }
 
     public abstract void reduce();
 
@@ -436,4 +468,22 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
                 return 0;
         }
     }
+
+    @Override
+    public T leastUpperBound(T other) {
+        if (this.type == Type.TOP || other.getType() == Type.TOP) {
+            return createInstance(Type.TOP);
+        }
+
+        // lub would only get called when two branches needed to merged, thus the lub would always be Type.MERGE
+        T lub = createInstance(Type.MERGE);
+        TreeValueUtils.mergeTreeValue(lub, getSubclassInstance());
+        TreeValueUtils.mergeTreeValue(lub, other);
+        return lub;
+    }
+
+    protected abstract T getSubclassInstance();
+    protected abstract T createInstance(Type type);
+    protected abstract T createInstance(Type type, Object leafValue);
+    protected abstract T createInstance(T left, T right);
 }

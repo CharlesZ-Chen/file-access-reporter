@@ -7,13 +7,11 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import org.checkerframework.dataflow.analysis.AbstractValue;
-import org.checkerframework.dataflow.cfg.node.Node;
-
-import analysis.value.PathValue;
 
 public class FileAccessUtils {
     public static <K, V extends AbstractValue<V>>
         Map<K, V> merge(Map<K, V> leftMap, Map<K, V> rightMap) {
+
         Map<K, V> mergedMap = new HashMap<>();
         for (Entry<K, V> entry : leftMap.entrySet()) {
             K key = entry.getKey();
@@ -30,14 +28,6 @@ public class FileAccessUtils {
             mergedMap.putIfAbsent(entry.getKey(), entry.getValue());
         }
         return mergedMap;
-    }
-
-    public static <K, V>
-    void printMap (Map<K, V> map) {
-        System.out.println("===map size is: " + map.size());
-        for (Entry<K, V> entry : map.entrySet()) {
-            System.out.println("\t" + entry.getKey() + " -> " + entry.getValue());
-        }
     }
 
     public static <E>
@@ -71,4 +61,17 @@ public class FileAccessUtils {
         }
         return true;
     }
+
+    /**
+     * debug print out utility
+     * @param map
+     */
+    public static <K, V>
+    void printMap (Map<K, V> map) {
+        System.out.println("===map size is: " + map.size());
+        for (Entry<K, V> entry : map.entrySet()) {
+            System.out.println("\t" + entry.getKey() + " -> " + entry.getValue());
+        }
+    }
+
 }

@@ -14,6 +14,7 @@ import org.checkerframework.javacutil.TypesUtils;
 
 import analysis.value.PathValue;
 import analysis.value.StrValue;
+import analysis.value.TreeValue;
 import analysis.value.TreeValue.Type;
 
 public class TreeValueUtils {
@@ -36,23 +37,26 @@ public class TreeValueUtils {
         }
     }
 
-    public static void mergeStrValue (StrValue target, StrValue source) {
-        assert target.getType() ==  Type.MERGE;
+    public static <V extends Node, R, T extends TreeValue<V, R, T>>
+    void mergeTreeValue(T target, T source) {
+        if (target.getType() != Type.MERGE) {
+            throw new RuntimeException("target must be a MERGE type but get: " + target.getType());
+        }
+
         if (source.getType() == Type.TOP) {
             return;
         }
 
         if (source.getType() == Type.MERGE) {
-            for (StrValue strValue : source.getMergedSet()) {
-                StrValue copy = strValue.copy();
+            for (T treeValue : source.getMergedSet()) {
+                T copy = treeValue.copy();
                 target.getMergedSet().add(copy);
             }
         } else {
-            StrValue copy = source.copy();
+            T copy = source.copy();
             target.getMergedSet().add(copy);
         }
     }
-
     public static PathValue createPathValue(List<Node> args) {
         switch (args.size()) {
             case 1: {

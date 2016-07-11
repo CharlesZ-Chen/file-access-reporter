@@ -1,6 +1,5 @@
 package analysis;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,13 +11,16 @@ import org.checkerframework.dataflow.analysis.FlowExpressions.Receiver;
 import org.checkerframework.dataflow.analysis.Store;
 import org.checkerframework.dataflow.cfg.CFGVisualizer;
 import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.dataflow.cfg.node.ObjectCreationNode;
 import org.checkerframework.dataflow.cfg.node.ReturnNode;
 import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
 import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
 import org.checkerframework.javacutil.TypesUtils;
 
 import analysis.value.PathValue;
+import analysis.value.TreeValue.Type;
 import utils.FileAccessUtils;
+import utils.TreeValueUtils;
 
 public class FileAccessStore implements Store<FileAccessStore> {
 
@@ -99,16 +101,34 @@ public class FileAccessStore implements Store<FileAccessStore> {
         if (!(node instanceof ReturnNode) && !TypesUtils.isDeclaredOfName(node.getType(), "java.io.File")) {
             throw new RuntimeException("non java.io.File node unexpected. node type: " + node.getType());
         }
-        this.filePathMap.put(node, value);
-        System.out.println("track file: " + node);
+        if (!this.filePathMap.containsKey(node)) {
+            this.filePathMap.put(node, value);
+        } else {
+            PathValue oldPathValue = filePathMap.get(node);
+            PathValue mergeValue;
+            if (oldPathValue.getType() != Type.MERGE) {
+                mergeValue = new PathValue(Type.MERGE);
+                TreeValueUtils.mergeTreeValue(mergeValue, oldPathValue);
+            } else {
+                mergeValue = oldPathValue;
+            }
+            TreeValueUtils.mergeTreeValue(mergeValue, value);
+            this.filePathMap.put(node, mergeValue);
+        }
     }
 
-    public void trackStrVarInArgs(List<Node> args) {
+    public void trackVarInArgs(List<Node> args) {
         for (Node arg : args) {
-            if (!TypesUtils.isDeclaredOfName(arg.getType(), "java.lang.String")) {
-                continue;
+            if (TypesUtils.isDeclaredOfName(arg.getType(), "java.lang.String")) {
+                trackStrVarInNode(arg);
+            } else if (TypesUtils.isDeclaredOfName(arg.getType(), "java.io.File")) {
+                if (arg instanceof ObjectCreationNode) {
+                    trackVarInArgs(((ObjectCreationNode) arg).getArguments());
+                } else {
+                    System.out.println("track file: " + arg);
+                    trackVarSet.add(arg);
+                }
             }
-            trackStrVarInNode(arg);
         }
     }
 
@@ -123,7 +143,7 @@ public class FileAccessStore implements Store<FileAccessStore> {
             //don't track literal
         }
         else {
-            System.out.println("track: " + node);
+            System.out.println("track str: " + node);
             this.trackVarSet.add(node);
         }
     }
@@ -152,11 +172,15 @@ public class FileAccessStore implements Store<FileAccessStore> {
     }
 
     public void solveFileVar(Node fileVar, PathValue substitution) {
-        //TODO
+        for (PathValue pathValue : filePathMap.values()) {
+            pathValue.solveFileVar(fileVar, substitution);
+        }
     }
 
     public void solveFileVar(Node fileVar, Node substitution) {
-        //TODO
+        for (PathValue pathValue : filePathMap.values()) {
+            pathValue.solveFileVar(fileVar, substitution);
+        }
     }
 
     public void trackStrInConcatenation(StringConcatenateNode scNode) {

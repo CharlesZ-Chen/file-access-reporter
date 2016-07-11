@@ -4,18 +4,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.checkerframework.dataflow.analysis.AbstractValue;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.javacutil.TypesUtils;
-
-import utils.TreeValueUtils;
 
 /**
  * In PathValue, only the left-most child could be a VAR
  * @author charleszhuochen
  *
  */
-public class PathValue extends TreeValue<Node, StrValue, PathValue> implements AbstractValue<PathValue> {
+public class PathValue extends TreeValue<Node, StrValue, PathValue> {
 
     public PathValue(TreeValue.Type type) {
         super(type);
@@ -53,12 +50,6 @@ public class PathValue extends TreeValue<Node, StrValue, PathValue> implements A
         root.varTable.put(target, Collections.unmodifiableList(leafList));
     }
 
-    @Override
-    public PathValue leastUpperBound(PathValue other) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
     public void solveFileVar(Node target, PathValue substitution) {
         switch(this.type) {
             case TOP: return;
@@ -68,12 +59,14 @@ public class PathValue extends TreeValue<Node, StrValue, PathValue> implements A
                         pathValue.solveFileVar(target, substitution);
                     }
                 }
+                return;
             }
 
             case VAR: {
                 if (root.varTable.containsKey(target)) {
                     solve(target, substitution);
                 }
+                return;
             }
 
             case REDUCED: {
@@ -146,14 +139,32 @@ public class PathValue extends TreeValue<Node, StrValue, PathValue> implements A
     }
 
     @Override
-    public PathValue copy() {
+    public void reduce() {
         // TODO Auto-generated method stub
+    }
+
+    @Override
+    protected PathValue getSubclassInstance() {
         return this;
     }
 
     @Override
-    public void reduce() {
-        // TODO Auto-generated method stub
+    protected PathValue createInstance(TreeValue.Type type) {
+        return new PathValue(type);
+    }
+
+    @Override
+    protected PathValue createInstance(TreeValue.Type type, Object leafValue) {
+        Object leafValueCopy = leafValue;
+        if (leafValue instanceof StrValue) {
+            leafValueCopy = ((StrValue) leafValue).copy();
+        }
+        return new PathValue(type, leafValueCopy);
+    }
+
+    @Override
+    protected PathValue createInstance(PathValue left, PathValue right) {
+        return new PathValue(left, right);
     }
 
 }

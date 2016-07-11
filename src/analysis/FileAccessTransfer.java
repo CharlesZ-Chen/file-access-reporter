@@ -1,8 +1,6 @@
 package analysis;
 
-import java.nio.file.Path;
 import java.util.List;
-import java.util.PrimitiveIterator.OfDouble;
 
 import javax.lang.model.type.TypeMirror;
 
@@ -50,7 +48,7 @@ public class FileAccessTransfer
             if (!store.containsInFilePathMap(n)) {
                 List<Node> args = ((ObjectCreationNode) result).getArguments();
                 PathValue pathValue = TreeValueUtils.createPathValue(args);
-                store.trackStrVarInArgs(args);
+                store.trackVarInArgs(args);
                 store.putToFileMap(n, pathValue);
                 return new RegularTransferResult<>(pathValue, store);
             }
@@ -73,17 +71,17 @@ public class FileAccessTransfer
                 ObjectCreationNode oNode = (ObjectCreationNode) expression;
                 assert TypesUtils.isDeclaredOfName(oNode.getConstructor().getType(), "java.io.File");
 
-                if (!store.containsInFilePathMap(target)) {
-                    List<Node> args = oNode.getArguments();
-                    PathValue pathValue = TreeValueUtils.createPathValue(args);
-                    store.trackStrVarInArgs(args);
-                    store.putToFileMap(n.getTarget(), pathValue);
 
-                    if (store.isTrackingVar(target)) {
-                        store.solveFileVar(target, pathValue);
-                    }
-                    return new RegularTransferResult<>(pathValue, store);
+                List<Node> args = oNode.getArguments();
+                PathValue pathValue = TreeValueUtils.createPathValue(args);
+                store.trackVarInArgs(args);
+                store.putToFileMap(n.getTarget(), pathValue);
+
+                if (store.isTrackingVar(target)) {
+                    store.solveFileVar(target, pathValue);
                 }
+                return new RegularTransferResult<>(pathValue, store);
+
             } else {
                 if (store.isTrackingVar(target)) {
                     store.solveFileVar(target, expression);

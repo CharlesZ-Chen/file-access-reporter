@@ -1,13 +1,12 @@
 package analysis.value;
 
-import org.checkerframework.dataflow.analysis.AbstractValue;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
 import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
 
 import utils.TreeValueUtils;
 
-public class StrValue extends TreeValue<Node, String, StrValue> implements AbstractValue<StrValue>{
+public class StrValue extends TreeValue<Node, String, StrValue> {
 
     public StrValue(Type type, Object leafValue) {
         super(type, leafValue);
@@ -19,19 +18,6 @@ public class StrValue extends TreeValue<Node, String, StrValue> implements Abstr
 
     public StrValue(StrValue left, StrValue right) {
         super(left, right);
-    }
-
-    @Override
-    public StrValue leastUpperBound(StrValue other) {
-        if (this.type == Type.TOP || other.getType() == Type.TOP) {
-            return new StrValue(Type.TOP);
-        }
-
-        // lub would only get called when two branches needed to merged, thus the lub would always be Type.MERGE
-        StrValue lub = new StrValue(Type.MERGE);
-        TreeValueUtils.mergeStrValue(lub, this);
-        TreeValueUtils.mergeStrValue(lub, other);
-        return lub;
     }
 
     public void solveVar(Node target, Node expression) {
@@ -131,35 +117,25 @@ public class StrValue extends TreeValue<Node, String, StrValue> implements Abstr
         }
     }
 
+
     @Override
-    public StrValue copy() {
-        switch (this.type) {
-            case TOP: {
-                return new StrValue(Type.TOP);
-            }
-
-            case MERGE: {
-                StrValue copy = new StrValue(Type.MERGE);
-                for (StrValue strValue : this.mergedSet) {
-                    copy.mergedSet.add(strValue.copy());
-                }
-                return copy;
-            }
-
-            case VAR:
-            case REDUCED: {
-                if (this.isLeaf) {
-                    return new StrValue(this.type, this.leafValue);
-                }
-
-                StrValue left = this.left.copy();
-                StrValue right = this.right.copy();
-                return new StrValue(left, right);
-            }
-
-            default:
-                assert false;
-                return null;
-        }
+    protected StrValue getSubclassInstance() {
+        return this;
     }
+
+    @Override
+    protected StrValue createInstance(TreeValue.Type type) {
+        return new StrValue(type);
+    }
+
+    @Override
+    protected StrValue createInstance(TreeValue.Type type, Object leafValue) {
+        return new StrValue(type, leafValue);
+    }
+
+    @Override
+    protected StrValue createInstance(StrValue left, StrValue right) {
+        return new StrValue(left, right);
+    }
+
 }
