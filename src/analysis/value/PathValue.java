@@ -1,5 +1,6 @@
 package analysis.value;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -174,7 +175,13 @@ public class PathValue extends TreeValue<Node, StrValue, PathValue> {
                                 rightValue.reduce();
                             }
                             assert leftValue.isLeaf && rightValue.isLeaf : "a REDUCED type StrValue should become leaf after calling reduce method.";
-                            String reducedString = leftValue.leafValue.toString() + rightValue.leafValue.toString();
+                            String reducedString;
+                            if (this.left == this.root.getLeftMost()) {
+                                reducedString = leftValue.leafValue.toString() + File.separator + rightValue.leafValue.toString();
+                            } else {
+                                reducedString = leftValue.leafValue.toString() + rightValue.leafValue.toString();
+                            }
+
                             StrValue reducedStrValue = new StrValue(Type.REDUCED, reducedString);
                             this.isLeaf = true;
                             this.leafValue = reducedStrValue;
@@ -217,4 +224,11 @@ public class PathValue extends TreeValue<Node, StrValue, PathValue> {
         return new PathValue(left, right);
     }
 
+    //TODO: keep a leftMost reference would save performance of searching
+    protected PathValue getLeftMost() {
+        if (this.isLeaf) {
+            return this;
+        }
+        else return this.left.getLeftMost();
+    }
 }
