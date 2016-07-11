@@ -104,4 +104,10 @@ public class TreeValueUtils {
                 return null;
         }
     }
+
+
+    public static String prepareNodeSimpleName(String className) {
+        return className.replace("class org.checkerframework.dataflow.cfg.node.", "");
+    }
+
 }

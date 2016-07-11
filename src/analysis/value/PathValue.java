@@ -231,4 +231,26 @@ public class PathValue extends TreeValue<Node, StrValue, PathValue> {
         }
         else return this.left.getLeftMost();
     }
+
+    @Override
+    public String toString() {
+        switch (this.type) {
+        case TOP:
+
+        case MERGE: {
+            return super.toString();
+        }
+
+        case VAR:
+        case REDUCED: {
+            if (isLeaf) {
+                return super.toString();
+            }
+            return this.left.toString() + File.separator + this.right.toString();
+        }
+            default:
+                assert false;
+                return null;
+        }
+    }
 }

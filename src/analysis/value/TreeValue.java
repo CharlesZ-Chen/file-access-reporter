@@ -295,16 +295,16 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
         return type;
     }
 
-    public boolean isLeaf() {
-        return isLeaf;
-    }
-
     public Object getLeafValue() {
         return leafValue;
     }
 
     public Set<T> getMergedSet() {
         return mergedSet;
+    }
+
+    public boolean isLeaf() {
+        return isLeaf;
     }
 
     public T getLeft() {
@@ -323,33 +323,34 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
         this.right = right;
     }
 
-    public static String prepareNodeSimpleName(String className) {
-        return className.replace("class org.checkerframework.dataflow.cfg.node.", "");
-    }
     @Override
     public String toString() {
         switch (type) {
-            case TOP:
+            case TOP: {
                 return "TOP";
+            }
+
             case VAR: {
                 if (isLeaf) {
-                    Node nodeValue = (Node) leafValue;
-                    if (nodeValue instanceof StringConversionNode) {
-                        return nodeValue.toString();
+                    if (leafValue instanceof Node) {
+                        Node nodeValue = (Node) leafValue;
+                        if (nodeValue instanceof StringConversionNode) {
+                            return nodeValue.toString();
+                        } else {
+                            return TreeValueUtils.prepareNodeSimpleName(nodeValue.getClass().toString()) + "(" + nodeValue.toString() + ")";
+                        }
                     } else {
-                        return TreeValue.prepareNodeSimpleName(nodeValue.getClass().toString()) + "(" + nodeValue.toString() + ")";
+                        return leafValue.toString();
                     }
                 }
-                // otherwise using same logic as reduced
             }
             case REDUCED: {
                 if (isLeaf) {
                     return leafValue.toString();
                 }
-                StringBuilder sbBuilder = new StringBuilder();
-                sbBuilder.append(left.toString() + " + " + right.toString());
-                return sbBuilder.toString();
+                return left.toString() + " + " + right.toString();
             }
+
             case MERGE: {
                 StringBuilder sBuilder = new StringBuilder();
                 sBuilder.append("[ ");

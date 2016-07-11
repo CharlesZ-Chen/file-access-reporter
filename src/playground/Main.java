@@ -13,7 +13,7 @@ public class Main {
     public static void main(String[] args) {
 
         /* Configuration: change as appropriate */
-        String inputFile = "/Users/charleszhuochen/Desktop/Test.java"; // input file name and path
+        String inputFile = "/Users/charleszhuochen/Programming/UWaterloo/jsr308/dataflow-workspace/file-access-reporter/Test.java"; // input file name and path
         String outputDir = "/Users/charleszhuochen/Desktop/cfg"; // output directory
         String method = "test"; // name of the method to analyze
         String clazz = "Test"; // name of the class to consider

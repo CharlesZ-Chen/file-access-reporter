@@ -2,7 +2,10 @@ package analysis.value;
 
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
+import org.checkerframework.dataflow.cfg.node.StringConversionNode;
 import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
+
+import com.sun.tools.javac.parser.Tokens;
 
 import utils.TreeValueUtils;
 
@@ -117,6 +120,37 @@ public class StrValue extends TreeValue<Node, String, StrValue> {
         }
     }
 
+    @Override
+    public String toString() {
+        switch (this.type) {
+            case TOP:
+            case MERGE:
+            case REDUCED: {
+                return super.toString();
+            }
+
+            case VAR: {
+                if (isLeaf) {
+                    Node nodeValue = (Node) leafValue;
+                    if (nodeValue instanceof StringConversionNode) {
+                        return nodeValue.toString();
+                    } else {
+                        return StrValue.prepareNodeSimpleName(nodeValue.getClass().toString()) + "(" + nodeValue.toString() + ")";
+                    }
+                } else {
+                    return super.toString();
+                }
+            }
+
+            default:
+                assert false;
+                 return null;
+        }
+    }
+
+    public static String prepareNodeSimpleName(String className) {
+        return className.replace("class org.checkerframework.dataflow.cfg.node.", "");
+    }
 
     @Override
     protected StrValue getSubclassInstance() {
