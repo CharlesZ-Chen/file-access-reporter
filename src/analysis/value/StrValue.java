@@ -121,38 +121,6 @@ public class StrValue extends TreeValue<Node, String, StrValue> {
     }
 
     @Override
-    public String toString() {
-        switch (this.type) {
-            case TOP:
-            case MERGE:
-            case REDUCED: {
-                return super.toString();
-            }
-
-            case VAR: {
-                if (isLeaf) {
-                    Node nodeValue = (Node) leafValue;
-                    if (nodeValue instanceof StringConversionNode) {
-                        return nodeValue.toString();
-                    } else {
-                        return StrValue.prepareNodeSimpleName(nodeValue.getClass().toString()) + "(" + nodeValue.toString() + ")";
-                    }
-                } else {
-                    return super.toString();
-                }
-            }
-
-            default:
-                assert false;
-                 return null;
-        }
-    }
-
-    public static String prepareNodeSimpleName(String className) {
-        return className.replace("class org.checkerframework.dataflow.cfg.node.", "");
-    }
-
-    @Override
     protected StrValue getSubclassInstance() {
         return this;
     }
