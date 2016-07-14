@@ -36,6 +36,7 @@ public class FileAccessProcessor extends BasicTypeProcessor {
     protected ClassTree currentClassTree;
     protected MethodTree currentMethodTree;
     protected StringBuilder finalReport;
+    protected boolean verbose = false;
 
     public FileAccessProcessor() {
        super();
@@ -116,7 +117,10 @@ public class FileAccessProcessor extends BasicTypeProcessor {
         sBuilder.append("Analysis Result of " + cfgIdentifier + ":\n");
         for (Entry<Node, PathValue> entry : filePathMap.entrySet()) {
             entry.getValue().reduce(); // final reduce before out put
-            sBuilder.append("\t" + entry.getKey() + " = " + entry.getValue() + "\n");
+            if (verbose) {
+                sBuilder.append("\t" + entry.getKey() + " = ");
+            }
+            sBuilder.append( entry.getValue() + "\n");
         }
         sBuilder.append("\n");
         this.finalReport.append(sBuilder);
