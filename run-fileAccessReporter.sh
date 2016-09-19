@@ -3,8 +3,10 @@
 WORKING_DIR=$(pwd)
 ROOT=$(cd $(dirname $0)/.. && pwd)
 
-DATAFLOW="$ROOT"/dataflow-framework/dataflow
-JAVACUTIL="$ROOT"/dataflow-framework/javacutil
+CHECKER_FRAMEWORK="$ROOT"/checker-framework
+
+DATAFLOW="$CHECKER_FRAMEWORK"/dataflow
+JAVACUTIL="$CHECKER_FRAMEWORK"/javacutil
 JSR308_LANGTOOL="$ROOT"/jsr308-langtools
 
 DATAFLOW_JAR="$DATAFLOW"/dist/dataflow.jar
