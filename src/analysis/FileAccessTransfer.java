@@ -40,21 +40,21 @@ public class FileAccessTransfer
         return new RegularTransferResult<PathValue, FileAccessStore>(null, p.getRegularStore());
     }
 
-    @Override
-    public RegularTransferResult<PathValue, FileAccessStore> visitReturn(ReturnNode n, TransferInput<PathValue, FileAccessStore> p) {
-        Node result = n.getResult();
-        if (result instanceof ObjectCreationNode && TypesUtils.isDeclaredOfName(result.getType(), "java.io.File")) {
-            FileAccessStore store = p.getRegularStore();
-            if (!store.containsInFilePathMap(n)) {
-                List<Node> args = ((ObjectCreationNode) result).getArguments();
-                PathValue pathValue = TreeValueUtils.createPathValue(args);
-                store.trackVarInArgs(args);
-                store.putToFileMap(n, pathValue);
-                return new RegularTransferResult<>(pathValue, store);
-            }
-        }
-        return (RegularTransferResult<PathValue, FileAccessStore>) super.visitReturn(n, p);
-    }
+//    @Override
+//    public RegularTransferResult<PathValue, FileAccessStore> visitReturn(ReturnNode n, TransferInput<PathValue, FileAccessStore> p) {
+//        Node result = n.getResult();
+//        if (result instanceof ObjectCreationNode && TypesUtils.isDeclaredOfName(result.getType(), "java.io.File")) {
+//            FileAccessStore store = p.getRegularStore();
+//            if (!store.containsInFilePathMap(n)) {
+//                List<Node> args = ((ObjectCreationNode) result).getArguments();
+//                PathValue pathValue = TreeValueUtils.createPathValue(args);
+//                store.trackVarInArgs(args);
+//                store.putToFileMap(n, pathValue);
+//                return new RegularTransferResult<>(pathValue, store);
+//            }
+//        }
+//        return (RegularTransferResult<PathValue, FileAccessStore>) super.visitReturn(n, p);
+//    }
 
     @Override
     public RegularTransferResult<PathValue, FileAccessStore> visitObjectCreation(ObjectCreationNode n,
