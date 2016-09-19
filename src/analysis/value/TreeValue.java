@@ -21,7 +21,13 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
         VAR,
         REDUCED;
     }
-
+    /**
+     * following invariants should be hold:
+     * isLeaf <==> leafValue != null && left == null && right == null && type != MERGE
+     * type == MERGE <==> !isLeaf && mergedSet != null
+     * type == REDUCED <==> root.varTable == null
+     * type == VAR <==> !root.varTable.isEmpty()
+     */
     protected Type type;
     protected boolean isLeaf;
     protected Object leafValue;
@@ -29,7 +35,6 @@ public abstract class TreeValue <V extends Node, R, T extends TreeValue<V, R, T>
     protected T root;
     protected T left;
     protected T right;
-    
     protected Hashtable<V, List<T>> varTable;
 
     //TODO: move logic to TreeValue(Type, Object) make this a wrapper of leafValue=null
